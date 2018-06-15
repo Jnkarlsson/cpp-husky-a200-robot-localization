@@ -33,6 +33,45 @@
 #ifndef ROBOT_LOCALIZATION_FILTER_COMMON_H
 #define ROBOT_LOCALIZATION_FILTER_COMMON_H
 
+
+#include <ros/console.h>
+#include <string>
+#include <sstream>
+
+
+void rosmsg() {
+	ROS_INFO_STREAM("\n");
+}
+
+
+template<typename T>
+void rosmsg(T& t) {
+	std::stringstream ss;
+	ss << t;
+	std::string msg = ss.str();
+	ROS_INFO_STREAM(msg);
+}
+
+
+template<typename T, typename U>
+void rosmsg(T& t, U& u) {
+	std::stringstream ss;
+	ss << t << " " << u;
+	std::string msg = ss.str();
+	ROS_INFO_STREAM(msg);
+}
+
+
+template<typename T, typename U, typename V>
+void rosmsg(T& t, U& u, V& v) {
+	std::stringstream ss;
+	ss << t << " " << u << " " << v;
+	std::string msg = ss.str();
+	ROS_INFO_STREAM(msg);
+}
+
+
+
 namespace RobotLocalization
 {
 

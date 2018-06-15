@@ -102,6 +102,7 @@ namespace RobotLocalization
     // Subscribe to the messages and services we need
     ros::ServiceServer datum_srv = nh.advertiseService("datum", &NavSatTransform::datumCallback, this);
 
+
     if (use_manual_datum_ && nh_priv.hasParam("datum"))
     {
       XmlRpc::XmlRpcValue datum_config;
@@ -160,8 +161,14 @@ namespace RobotLocalization
     }
 
     ros::Subscriber odom_sub = nh.subscribe("odometry/filtered", 1, &NavSatTransform::odomCallback, this);
-    ros::Subscriber gps_sub = nh.subscribe("gps/fix", 1, &NavSatTransform::gpsFixCallback, this);
+
+
+    // checking if navsat/fix works with this subscriber as opposed to gps/fix
+    ros::Subscriber gps_sub = nh.subscribe("navsat/fix", 1, &NavSatTransform::gpsFixCallback, this);
     ros::Subscriber imu_sub;
+
+    // rosmsg(this, "use_odometry_yaw_", use_odometry_yaw_);
+    // rosmsg(this, "use manual data", use_manual_datum_);
 
     if (!use_odometry_yaw_ && !use_manual_datum_)
     {
@@ -173,6 +180,7 @@ namespace RobotLocalization
 
     if (publish_gps_)
     {
+      // check if gps/filtered needs to be navsat/filtered
       filtered_gps_pub = nh.advertise<sensor_msgs::NavSatFix>("gps/filtered", 10);
     }
 
@@ -181,6 +189,13 @@ namespace RobotLocalization
     ros::Duration start_delay(delay);
     start_delay.sleep();
 
+
+    //rosmsg("computing pretransform:");
+    //bool not_has_transform_good = !transform_good_;
+    //rosmsg("not_has_transform_good", not_has_transform_good);
+    //rosmsg();
+
+
     ros::Rate rate(frequency);
     while (ros::ok())
     {
@@ -188,7 +203,13 @@ namespace RobotLocalization
 
       if (!transform_good_)
       {
+
+
+        //rosmsg("pre-computeTransform", has_transform_gps_);
+        //rosmsg();
+
         computeTransform();
+
 
         if (transform_good_ && !use_odometry_yaw_ && !use_manual_datum_)
         {
@@ -198,10 +219,18 @@ namespace RobotLocalization
       }
       else
       {
+
+        // debugging
+        //rosmsg("pre-prepareGpsOdometry");
+        //rosmsg();
+
         nav_msgs::Odometry gps_odom;
         if (prepareGpsOdometry(gps_odom))
         {
           gps_odom_pub.publish(gps_odom);
+
+          // rosmsg("prepareGpsOdometry");
+
         }
 
         if (publish_gps_)
@@ -214,6 +243,9 @@ namespace RobotLocalization
         }
       }
 
+
+      //rosmsg("\n");
+
       rate.sleep();
     }
   }
@@ -223,6 +255,17 @@ namespace RobotLocalization
     // Only do this if:
     // 1. We haven't computed the odom_frame->utm_frame transform before
     // 2. We've received the data we need
+
+
+    //rosmsg("computing transform:");
+    //bool not_has_transform_good = !transform_good_;
+    //rosmsg("!transform_good_", not_has_transform_good);
+    //rosmsg("has_transform_odom_", has_transform_odom_);
+    //rosmsg("has_transform_gps_", has_transform_gps_);
+    //rosmsg("has_transform_imu_", has_transform_imu_);
+    //rosmsg();
+
+
     if (!transform_good_ &&
         has_transform_odom_ &&
         has_transform_gps_ &&
@@ -271,6 +314,10 @@ namespace RobotLocalization
       ROS_INFO_STREAM("Corrected for magnetic declination of " << std::fixed << magnetic_declination_ <<
                       " and user-specified offset of " << yaw_offset_ << "." <<
                       " Transform heading factor is now " << imu_yaw);
+
+
+      // rosmsg(this, "imu yaw", imu_yaw);
+
 
       // Convert to tf-friendly structures
       tf2::Quaternion imu_quat;
@@ -366,6 +413,12 @@ namespace RobotLocalization
                                                                  transform_time,
                                                                  ros::Duration(transform_timeout_),
                                                                  offset);
+
+
+    // debug
+    //rosmsg("getRobotOriginUtmPose", can_transform);
+    //rosmsg();
+
 
     if (can_transform)
     {
@@ -464,6 +517,17 @@ namespace RobotLocalization
                      !std::isnan(msg->latitude) &&
                      !std::isnan(msg->longitude));
 
+
+
+    //rosmsg("gps callback", gps_frame_id_);
+    //rosmsg("good_gps", good_gps);
+    //bool not_transform_good = !transform_good_;
+    //bool not_use_manual_datum = !use_manual_datum_;
+    //rosmsg("not_tranform_good", not_transform_good);
+    //rosmsg("not_use_manual_datum", use_manual_datum_);
+
+
+
     if (good_gps)
     {
       // If we haven't computed the transform yet, then
@@ -471,6 +535,9 @@ namespace RobotLocalization
       if (!transform_good_ && !use_manual_datum_)
       {
         setTransformGps(msg);
+
+        //rosmsg("setTransformGps");
+
       }
 
       double utmX = 0;
@@ -498,6 +565,7 @@ namespace RobotLocalization
   {
     // We need the baseLinkFrameId_ from the odometry message, so
     // we need to wait until we receive it.
+
     if (has_transform_odom_)
     {
       /* This method only gets called if we don't yet have the
@@ -578,6 +646,10 @@ namespace RobotLocalization
   {
     bool new_data = false;
 
+    //rosmsg("prepareFilteredGps");
+    //rosmsg("transform_good_", transform_good_);
+    //rosmsg("odom_updated_", odom_updated_);
+
     if (transform_good_ && odom_updated_)
     {
       tf2::Transform odom_as_utm;
@@ -636,6 +708,13 @@ namespace RobotLocalization
   bool NavSatTransform::prepareGpsOdometry(nav_msgs::Odometry &gps_odom)
   {
     bool new_data = false;
+
+
+    //rosmsg("prepareGpsOdometry");
+    //rosmsg("transform_good_", transform_good_);
+    //rosmsg("gps_updated_", gps_updated_);
+    //rosmsg("odom_updated_", odom_updated_);
+
 
     if (transform_good_ && gps_updated_ && odom_updated_)
     {
@@ -711,7 +790,10 @@ namespace RobotLocalization
     tf2::fromMsg(msg->pose.pose, transform_world_pose_);
     has_transform_odom_ = true;
 
-    ROS_INFO_STREAM("Initial odometry pose is " << transform_world_pose_);
+
+    // COMMENTED OUT
+    // ROS_INFO_STREAM("Initial odometry pose is " << transform_world_pose_);
+
 
     // Users can optionally use the (potentially fused) heading from
     // the odometry source, which may have multiple fused sources of

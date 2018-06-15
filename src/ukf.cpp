@@ -43,8 +43,9 @@
 
 #include <iostream>
 #include <vector>
-
 #include <assert.h>
+
+
 
 namespace RobotLocalization
 {
@@ -76,6 +77,14 @@ namespace RobotLocalization
       stateWeights_[i] =  1 / (2 * (STATE_SIZE + lambda_));
       covarWeights_[i] = stateWeights_[i];
     }
+
+    // printing out a message to user
+    // rosmsg(this, "in ukf ctor", "5");
+
+    // for debug purposes
+    // rosmsg(this, "z accel in ctor", state_(StateMemberAz));
+
+
   }
 
   Ukf::~Ukf()
@@ -88,6 +97,12 @@ namespace RobotLocalization
              "State is:\n" << state_ <<
              "\nMeasurement is:\n" << measurement.measurement_ <<
              "\nMeasurement covariance is:\n" << measurement.covariance_ << "\n");
+
+
+    // for debugging purposes only
+    // rosmsg(this, "measurement", measurement.topicName_);
+    // rosmsg(this, "pre correct z var", state_(StateMemberZ));
+
 
     // In our implementation, it may be that after we call predict once, we call correct
     // several times in succession (multiple measurements with different time stamps). In
@@ -279,6 +294,12 @@ namespace RobotLocalization
                "\nCorrected full estimate error covariance is:\n" << estimateErrorCovariance_ <<
                "\n\n---------------------- /Ukf::correct ----------------------\n");
     }
+
+
+    // for purposes of debugging
+    // rosmsg(this, "post correct z var", state_(StateMemberZ));
+
+
   }
 
   void Ukf::predict(const double referenceTime, const double delta)
@@ -286,6 +307,7 @@ namespace RobotLocalization
     FB_DEBUG("---------------------- Ukf::predict ----------------------\n" <<
              "delta is " << delta <<
              "\nstate is " << state_ << "\n");
+
 
     double roll = state_(StateMemberRoll);
     double pitch = state_(StateMemberPitch);
@@ -302,6 +324,11 @@ namespace RobotLocalization
     double cy = ::cos(yaw);
 
     prepareControl(referenceTime, delta);
+
+    // static unsigned int idx = 0;
+    // printing out the z state member
+    // rosmsg(this, ++idx, state_(StateMemberZ));
+
 
     // Prepare the transfer function
     transferFunction_(StateMemberX, StateMemberVx) = cy * cp * delta;
@@ -352,12 +379,32 @@ namespace RobotLocalization
       sigmaPoints_[sigmaInd + 1 + STATE_SIZE] = transferFunction_ * (state_ - weightedCovarSqrt_.col(sigmaInd));
     }
 
+
+    // for purposes of debugging
+    // rosmsg(this, "pre predict z var", state_(StateMemberZ));
+    // rosmsg(this, "pre predict z accel", state_(StateMemberAz));
+
+
     // (3) Sum the weighted sigma points to generate a new state prediction
     state_.setZero();
     for (size_t sigmaInd = 0; sigmaInd < sigmaPoints_.size(); ++sigmaInd)
     {
       state_.noalias() += stateWeights_[sigmaInd] * sigmaPoints_[sigmaInd];
     }
+
+
+    //rosmsg(this, "x var", state_(StateMemberAx));
+    //rosmsg(this, "y var", state_(StateMemberAy));
+    //rosmsg(this, "z var", state_(StateMemberAz));
+    //rosmsg();
+
+
+    // for purposes of debugging
+    // rosmsg(this, "post predict z var", state_(StateMemberZ));
+    // rosmsg(this, "post predict z accel", state_(StateMemberAz));
+
+
+
 
     // (4) Now us the sigma points and the predicted state to compute a predicted covariance
     estimateErrorCovariance_.setZero();
@@ -389,6 +436,8 @@ namespace RobotLocalization
     FB_DEBUG("Predicted state is:\n" << state_ <<
              "\nPredicted estimate error covariance is:\n" << estimateErrorCovariance_ <<
              "\n\n--------------------- /Ukf::predict ----------------------\n");
+
+
   }
 
 }  // namespace RobotLocalization

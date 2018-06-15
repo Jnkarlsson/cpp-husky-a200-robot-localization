@@ -38,6 +38,7 @@
 
 std::ostream& operator<<(std::ostream& os, const Eigen::MatrixXd &mat)
 {
+
   os << "[";
 
   int rowCount = static_cast<int>(mat.rows());
@@ -67,6 +68,7 @@ std::ostream& operator<<(std::ostream& os, const Eigen::MatrixXd &mat)
 
 std::ostream& operator<<(std::ostream& os, const Eigen::VectorXd &vec)
 {
+
   os << "[";
   for (int dim = 0; dim < vec.rows(); ++dim)
   {
@@ -79,6 +81,7 @@ std::ostream& operator<<(std::ostream& os, const Eigen::VectorXd &vec)
 
 std::ostream& operator<<(std::ostream& os, const std::vector<size_t> &vec)
 {
+
   os << "[";
   for (size_t dim = 0; dim < vec.size(); ++dim)
   {
