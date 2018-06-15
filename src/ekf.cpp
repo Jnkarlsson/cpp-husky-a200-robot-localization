@@ -33,6 +33,7 @@
 #include "robot_localization/ekf.h"
 #include "robot_localization/filter_common.h"
 
+#include <ros/console.h>
 #include <XmlRpcException.h>
 
 #include <iomanip>
@@ -40,11 +41,14 @@
 #include <sstream>
 #include <vector>
 
+
 namespace RobotLocalization
 {
   Ekf::Ekf(std::vector<double>) :
     FilterBase()  // Must initialize filter base!
   {
+	  // user messages
+	  ROS_INFO_STREAM("\n\nEKF constructor\n\n");
   }
 
   Ekf::~Ekf()
